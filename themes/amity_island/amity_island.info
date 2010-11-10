@@ -1,0 +1,41 @@
+; $Id: amity_island.info,v 1.2 2008/08/21 15:13:07 drupalsharkcom Exp $
+name = Amity Island for Drupal 6.x
+description = Free Theme by ThemeShark.com (default).
+version = VERSION
+core = 6.x
+engine = phptemplate
+stylesheets[all][] = style.css
+stylesheets[print][] = print.css
+
+regions[left] = Left sidebar
+regions[right] = Right sidebar
+regions[content] = Content
+regions[header] = Header
+regions[contenttop] = Content Top
+regions[contentbottom] = Content Bottom
+regions[footer] = Footer
+regions[primary] = Primary Links
+regions[secondary] = Secondary Links
+regions[user1] = User 1
+regions[user2] = User 2
+regions[user3] = User 3
+regions[user4] = User 4
+regions[user5] = User 5
+regions[user6] = User 6
+
+features[] = logo
+features[] = name
+features[] = slogan
+; features[] = mission
+features[] = node_user_picture
+features[] = comment_user_picture
+features[] = search
+features[] = favicon
+features[] = primary_links
+; features[] = secondary_links
+; Information added by drupal.org packaging script on 2008-08-21
+version = "6.x-1.0"
+core = "6.x"
+project = "amity_island"
+datestamp = "1219334702"
+

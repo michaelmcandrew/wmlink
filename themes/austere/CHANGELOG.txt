@@ -1,0 +1,5 @@
+2008/06/09 - Initial release of Austere theme - duvien
+
+2008/08/16 - Add extra regions to the template - duvien
+
+2008/08/18 - Tidied up code to Drupal coding standards, thanks to fp 

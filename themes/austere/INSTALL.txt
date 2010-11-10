@@ -1,0 +1,6 @@
+How to install:
+
+- FTP to your site and upload folder and all files of this theme package to your Drupal theme folder.
+
+- Login to your site and navigate to /admin/build/themes and activate the theme. 
+  

@@ -1,0 +1,18 @@
+/* $Id: ie7.css,v 1.1.8.2 2008/08/21 01:32:55 duvien Exp $ */
+
+h2 {
+  font-size:1.2em;
+}
+
+#top_line {
+  margin-bottom:0px;
+}
+
+#search {
+  position:relative;
+  top:-15px;
+}
+
+#bottom-inner {
+  padding-top:10px;
+}

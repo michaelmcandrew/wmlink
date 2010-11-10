@@ -1,0 +1,52 @@
+/* $Id: ie6.css,v 1.1.8.2 2008/08/21 01:32:55 duvien Exp $ */
+h2 {
+  font-size:1.2em;
+}
+
+#top_line {
+  margin-top:-6px; 
+  margin-bottom:-8px;
+}
+#primary {
+  margin-right:5px;
+}
+
+#search {
+  position:relative;
+  top:-15px;
+}
+
+#bottom-inner {
+  padding-top:10px;
+}
+
+/*
+* Below is to fix the pngfix js added to position the CSS ID and classes
+*/
+h1.site-name {
+  position:relative;
+  top:-137px;
+  left:125px;
+}
+
+#logo img {
+  width:136px;
+  height:118px;
+}
+
+#primary {
+  position:relative;
+  top:-137px;
+  right:0px;
+}
+
+.breadcrumb {
+  position:relative;
+  top:-147px;
+  left:125px; 
+  margin-bottom:-32px;
+}
+
+.column {
+  margin-top:-107px;
+}

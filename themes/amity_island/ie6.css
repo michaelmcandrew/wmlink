@@ -1,0 +1,19 @@
+.sidebox-content ul.menu li {
+  display: inline;
+}
+
+.sidebox-content ul.menu li a {
+  background: url(images/li-bg.png) repeat-x bottom;
+}
+
+#primary-links li ul {
+  width: 200px;
+}
+
+#primary-links li ul li a, #primary-links li ul li {
+  padding: 0;
+}
+
+#primary-links li ul li a {
+  padding-left: 5px;
+}
