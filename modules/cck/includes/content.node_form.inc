@@ -1,5 +1,5 @@
 <?php
-// $Id: content.node_form.inc,v 1.7.2.14 2008/10/04 13:14:21 karens Exp $
+// $Id: content.node_form.inc,v 1.7.2.21 2009/07/18 00:40:20 markuspetrux Exp $
 
 /**
  * @file
@@ -42,23 +42,7 @@ function content_field_form(&$form, &$form_state, $field, $get_delta = NULL) {
   $form_element = array();
   $field_name = $field['field_name'];
 
-  // See if access to this form element is restricted,
-  // if so, skip widget processing and just set the value.
-  $access = TRUE;
-  $field_access = module_invoke_all('field_access', 'edit', $field);
-  foreach ($field_access as $value) {
-    if (empty($value)) {
-      $access = FALSE;
-    }
-  }
-  if (!$access) {
-    $addition[$field_name] = array(
-      '#access' => $access,
-      '#type' => 'value',
-      '#value' => $node->$field_name,
-      );
-    return $addition;
-  }
+  $items = array();
 
   // TODO: is the "if (function_exists($function)) {" needed ?
   // defining the $function here makes it unclear where it is actually called
@@ -70,7 +54,6 @@ function content_field_form(&$form, &$form_state, $field, $get_delta = NULL) {
     // - Node values (when editing an existing node), or pre-filled values (when
     //   creating a new node translation)
     // - Default values set for the field (when creating a new node).
-    $items = array();
     if (!empty($form_state['values'][$field['field_name']])) {
       $items = $form_state['values'][$field['field_name']];
       // If there was an AHAH add more button in this field, don't save it.
@@ -90,6 +73,18 @@ function content_field_form(&$form, &$form_state, $field, $get_delta = NULL) {
           $items = $callback($form, $form_state, $field, 0);
         }
       }
+    }
+
+    // See if access to this form element is restricted,
+    // if so, skip widget processing and just set the value.
+    $access = content_access('edit', $field, NULL, $node);
+    if (!$access) {
+      $addition[$field_name] = array(
+        '#access' => $access,
+        '#type' => 'value',
+        '#value' => $items,
+      );
+      return $addition;
     }
 
     // If content module handles multiple values for this form element,
@@ -245,10 +240,10 @@ function content_multiple_value_form(&$form, &$form_state, $field, $items) {
     );
 
     // Add wrappers for the fields and 'more' button.
-    // TODO: could be simplified ?
-    $form_element['#prefix'] = '<div class="clear-block" id="'. $field_name_css .'-add-more-wrapper"><div id="'. $field_name_css .'-items">';
-    $form_element[$field_name .'_add_more']['#prefix'] = '<div class="content-add-more">';
-    $form_element[$field_name .'_add_more']['#suffix'] =  '</div></div></div>';
+    $form_element['#prefix'] = '<div id="'. $field_name_css .'-items">';
+    $form_element['#suffix'] = '</div>';
+    $form_element[$field_name .'_add_more']['#prefix'] = '<div class="content-add-more clear-block">';
+    $form_element[$field_name .'_add_more']['#suffix'] =  '</div>';
   }
   return $form_element;
 }
@@ -357,6 +352,8 @@ function content_add_more_js($type_name_url, $field_name) {
   // We add a div around the new content to receive the ahah effect.
   $field_form[$delta]['#prefix'] = '<div class="ahah-new-content">'. (isset($field_form[$delta]['#prefix']) ? $field_form[$delta]['#prefix'] : '');
   $field_form[$delta]['#suffix'] = (isset($field_form[$delta]['#suffix']) ? $field_form[$delta]['#suffix'] : '') .'</div>';
+  // Prevent duplicate wrapper.
+  unset($field_form['#prefix'], $field_form['#suffix']);
 
   // If a newly inserted widget contains AHAH behaviors, they normally won't
   // work because AHAH doesn't know about those - it just attaches to the exact
@@ -367,6 +364,11 @@ function content_add_more_js($type_name_url, $field_name) {
   $output_js = isset($javascript['setting']) ? '<script type="text/javascript">jQuery.extend(Drupal.settings, '. drupal_to_js(call_user_func_array('array_merge_recursive', $javascript['setting'])) .');</script>' : '';
 
   $output = theme('status_messages') . drupal_render($field_form) . $output_js;
-  drupal_json(array('status' => TRUE, 'data' => $output));
+
+  // Using drupal_json() breaks filefield's file upload, because the jQuery
+  // Form plugin handles file uploads in a way that is not compatible with
+  // 'text/javascript' response type.
+  $GLOBALS['devel_shutdown'] =  FALSE;
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
 }

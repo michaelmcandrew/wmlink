@@ -1,7 +1,7 @@
-// $Id: imce.js,v 1.15.2.9 2008/07/13 11:34:49 ufku Exp $
+// $Id: imce.js,v 1.15.2.11 2010/02/01 15:46:10 ufku Exp $
 
 //Global container.
-var imce = {tree: {}, findex: [], fids: {}, selected: {}, selcount: 0, ops: {}, cache: {},
+var imce = {tree: {}, findex: [], fids: {}, selected: {}, selcount: 0, ops: {}, cache: {}, urlId: {},
 vars: {previewImages: 1, cache: 1},
 hooks: {load: [], list: [], navigate: [], cache: []},
 
@@ -145,6 +145,7 @@ fileAdd: function(file) {
   row.cells[4].innerHTML = file.fdate; row.cells[4].id = file.date;
   imce.invoke('list', row);
   if (imce.vars.prvfid == fid) imce.setPreview(fid);
+  if (file.id) imce.urlId[imce.getURL(fid)] = file.id;
 },
 
 //remove a file from the list
@@ -160,15 +161,18 @@ fileRemove: function(fid) {
 //return a file object containing all properties.
 fileGet: function (fid) {
   var row = imce.fids[fid];
+  var url = imce.getURL(fid);
   return row ? {
     name: imce.decode(fid),
-    url: imce.getURL(fid),
+    url: url,
     size: row.cells[1].innerHTML,
     bytes: row.cells[1].id * 1,
     width: row.cells[2].innerHTML * 1,
     height: row.cells[3].innerHTML * 1,
     date: row.cells[4].innerHTML,
-    time: row.cells[4].id * 1
+    time: row.cells[4].id * 1,
+    id: imce.urlId[url] || 0, //file id for newly uploaded files
+    relpath: (imce.conf.dir == '.' ? '' : imce.conf.dir +'/') + fid //rawurlencoded path relative to file directory path.
   } : null;
 },
 
@@ -242,6 +246,7 @@ setUploadOp: function () {
   if (!imce.el('imce-upload-form')) return;
   var form = $(imce.el('imce-upload-form'));
   form.find('fieldset').each(function() {//clean up fieldsets
+    imce.convertButtons(this);
     this.removeChild(this.firstChild);
     $(this).after(this.childNodes);
   }).remove();
@@ -253,6 +258,7 @@ setUploadOp: function () {
 setFileOps: function () {
   $(imce.el('edit-filenames-wrapper')).remove();
   $('#imce-fileop-form fieldset').each(function() {//remove fieldsets
+    imce.convertButtons(this);
     var sbmt = $('input:submit', this);
     if (!sbmt.size()) return;
     var Op = {name: sbmt.attr('id').substr(5)};
@@ -457,7 +463,7 @@ commonSubmit: function(fop) {
 
 //settings for default file operations
 fopSettings: function (fop) {
-  return {url: imce.ajaxURL(fop), type: 'POST', dataType: 'json', success: imce.processResponse, complete: function (response) {imce.fopLoading(fop, false);}, data: imce.vars.opform +'&filenames='+ imce.serialNames() +'&jsop='+ fop + (imce.ops[fop].div ? '&'+ $('input', imce.ops[fop].div).serialize() : '')};
+  return {url: imce.ajaxURL(fop), type: 'POST', dataType: 'json', success: imce.processResponse, complete: function (response) {imce.fopLoading(fop, false);}, data: imce.vars.opform +'&filenames='+ imce.serialNames() +'&jsop='+ fop + (imce.ops[fop].div ? '&'+ $('input, select, textarea', imce.ops[fop].div).serialize() : '')};
 },
 
 //toggle loading state
@@ -663,6 +669,12 @@ decode: function (str) {
 //global ajax error function
 ajaxError: function (e, response, settings, thrown) {
   imce.setMessage(Drupal.ahahError(response, settings.url).replace('\n', '<br />'), 'error');
+},
+//convert buttons to standard input buttons
+convertButtons: function(form) {
+  $('button:submit', form).each(function(){
+    $(this).replaceWith('<input type="submit" value="'+ this.value +'" name="'+ this.name +'" class="form-submit" id="'+ this.id +'" />');
+  });
 }
 };
 

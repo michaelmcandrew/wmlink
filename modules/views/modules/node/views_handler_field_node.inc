@@ -1,5 +1,5 @@
 <?php
-// $Id: views_handler_field_node.inc,v 1.2 2008/11/19 22:44:29 merlinofchaos Exp $
+// $Id: views_handler_field_node.inc,v 1.7.2.2 2010/03/16 23:09:05 merlinofchaos Exp $
 /**
  * @file
  * Contains the basic 'node' field handler.
@@ -14,7 +14,10 @@ class views_handler_field_node extends views_handler_field {
    */
   function construct() {
     parent::construct();
-    $this->additional_fields['nid'] = 'nid';
+    $this->additional_fields['nid'] = array('table' => 'node', 'field' => 'nid');
+    if (module_exists('translation')) {
+      $this->additional_fields['language'] = array('table' => 'node', 'field' => 'language');
+    }
   }
 
   function option_definition() {
@@ -30,6 +33,7 @@ class views_handler_field_node extends views_handler_field {
     parent::options_form($form, $form_state);
     $form['link_to_node'] = array(
       '#title' => t('Link this field to its node'),
+      '#description' => t('This will override any other link you have set.'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_node']),
     );
@@ -42,11 +46,19 @@ class views_handler_field_node extends views_handler_field {
    */
   function render_link($data, $values) {
     if (!empty($this->options['link_to_node']) && $data !== NULL && $data !== '') {
-      return l($data, "node/" . $values->{$this->aliases['nid']}, array('html' => TRUE));
+      $this->options['alter']['make_link'] = TRUE;
+      $this->options['alter']['path'] = "node/" . $values->{$this->aliases['nid']};
+      if (isset($this->aliases['language'])) {
+        $languages = language_list();
+        if (isset($languages[$values->{$this->aliases['language']}])) {
+          $this->options['alter']['language'] = $languages[$values->{$this->aliases['language']}];
+        }
+        else {
+          unset($this->options['alter']['language']);
+        }
+      }
     }
-    else {
-      return $data;
-    }
+    return $data;
   }
 
   function render($values) {

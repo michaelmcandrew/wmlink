@@ -1,4 +1,4 @@
-// $Id: CHANGELOG.txt,v 1.1.2.4 2008/05/02 21:50:44 sun Exp $
+// $Id: CHANGELOG.txt,v 1.1.2.12 2009/07/06 17:41:41 sun Exp $
 
 Switchtheme x.x-x.x, xxxx-xx-xx
 -------------------------------
@@ -6,6 +6,19 @@ Switchtheme x.x-x.x, xxxx-xx-xx
 
 Switchtheme 6.x-1.x, xxxx-xx-xx
 -------------------------------
+
+
+Switchtheme 6.x-1.1, 2009-07-06
+-------------------------------
+#484574 by sun: Fixed wrong link to Sections project in README.txt.
+#273909 by sun: Fixed theme switches after next page load for authenticated
+  users only.
+#249020 by SeanA: Changed default theme names to be capitalized by default.
+#264001 by Rob Loach: Added switching theme based on browser.
+#264001 by Rob Loach, sun: Fixed improper use of t() for menu items and moved
+  administrative functions into include.
+#292437 by sun: Fixed installation instructions.
+#266479 by gusgsm1: Added Spanish translation.
 
 
 Switchtheme 6.x-1.0, 2008-05-02

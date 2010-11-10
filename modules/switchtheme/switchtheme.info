@@ -1,11 +1,11 @@
-; $Id: switchtheme.info,v 1.4 2007/07/05 20:00:21 karens Exp $
+; $Id: switchtheme.info,v 1.4.2.1 2008/09/18 23:21:10 sun Exp $
 name = Switchtheme
-description = Adds a block to allow users to switch between enabled themes.
+description = Allows switching the theme in various means.
 core = 6.x
 
-; Information added by drupal.org packaging script on 2008-05-02
-version = "6.x-1.0"
+; Information added by drupal.org packaging script on 2009-07-06
+version = "6.x-1.1"
 core = "6.x"
 project = "switchtheme"
-datestamp = "1209765620"
+datestamp = "1246902510"
 

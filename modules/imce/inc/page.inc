@@ -1,12 +1,13 @@
 <?php
-// $Id: page.inc,v 1.10.2.13 2008/07/19 13:27:27 ufku Exp $
+// $Id: page.inc,v 1.10.2.26 2010/03/08 07:06:51 ufku Exp $
 
 /**
  * q = imce.
  */
-function imce_page() {
+function imce_page($user = FALSE) {
+  module_invoke('admin_menu', 'suppress');//suppress admin_menu
   $jsop = isset($_GET['jsop']) ? $_GET['jsop'] : NULL;
-  print theme('imce_page', imce_content($GLOBALS['user'], $jsop));
+  print theme('imce_page', imce_content($user === FALSE ? $GLOBALS['user'] : $user, $jsop));
   exit();
 }
 
@@ -14,9 +15,7 @@ function imce_page() {
  * q = user/x/imce.
  */
 function imce_user_page($account) {
-  drupal_set_title($account->name);
-  $jsop = isset($_GET['jsop']) ? $_GET['jsop'] : NULL;
-  return imce_content($account, $jsop);
+  return imce_page($account);
 }
 
 /**
@@ -65,7 +64,7 @@ function imce_content($user, $jsop = '') {
 
   //make necessary changes for js conversion
   $imce['dir'] = str_replace('%2F', '/', rawurlencode($imce['dir']));
-  unset($imce['files'], $imce['name'], $imce['directories'], $imce['subdirectories'], $imce['filesize'], $imce['quota'], $imce['tuquota'], $imce['thumbnails'], $imce['uid']);
+  unset($imce['files'], $imce['name'], $imce['directories'], $imce['subdirectories'], $imce['filesize'], $imce['quota'], $imce['tuquota'], $imce['thumbnails'], $imce['uid'], $imce['usertab']);
 
   drupal_add_js($imce_ref, 'setting');
 
@@ -91,6 +90,8 @@ function imce_js($user, $jsop = '') {
   //messages
   $response['messages'] = drupal_get_messages();
 
+  //for upload we must return plain text header.
+  drupal_set_header('Content-Type: text/'. ($jsop == 'upload' ? 'html' : 'javascript') .'; charset=utf-8');
   print drupal_to_js($response);
   exit();
 }
@@ -419,7 +420,7 @@ function imce_create_thumbnail($filename, &$imce, $thumbnail) {
   }
   //scale the image
   list($width, $height) = explode('x', $thumbnail['dimensions']);
-  return imce_resize_image($filename, $imce, $width, $height, TRUE, $name, 'scale_and_crop');
+  return imce_resize_image($filename, $imce, $width, $height, TRUE, $name, variable_get('imce_settings_thumb_method', 'scale_and_crop'));
 }
 
 /**
@@ -537,6 +538,7 @@ function imce_add_file($file, &$imce) {
     $add['name'] = rawurlencode($file->filename);
     $add['fsize'] = format_size($file->filesize);
     $add['fdate'] = format_date($file->timestamp, 'small');
+    $add['id'] = $file->fid;
     $imce['added'][] = $add;
   }
 }
@@ -625,7 +627,7 @@ function imce_validate_quotas($file, &$imce, $add = 0) {
  * Check if the file is an image and return info.
  */
 function imce_image_info($file) {
-  if (is_file($file) && ($info = @getimagesize($file)) && in_array($info[2], array(IMAGETYPE_JPEG, IMAGETYPE_GIF, IMAGETYPE_PNG)) ) {
+  if (is_file($file) && ($dot = strrpos($file, '.')) && in_array(strtolower(substr($file, $dot+1)), array('jpg', 'jpeg', 'gif', 'png')) && ($info = @getimagesize($file)) && in_array($info[2], array(IMAGETYPE_JPEG, IMAGETYPE_GIF, IMAGETYPE_PNG)) ) {
     return array('width' => $info[0], 'height' => $info[1], 'type' => $info[2], 'mime' => $info['mime']);
   }
   return FALSE;
@@ -720,6 +722,13 @@ function imce_process_directories($directories, $user) {
     if (substr($directory['name'], 0, 4) == 'php:') {
       //not using drupal_eval since we need $user to be accessible as it may be different from $GLOBALS['user']
       $directory['name'] = eval(substr($directory['name'], 4));
+     //php may return an array of directories
+      if (is_array($directory['name'])) {
+        foreach ($directory['name'] as $name) {
+          $paths[$name] = array('name' => $name) + $directory;
+        }
+        continue;
+      }
     }
     else {
       $directory['name'] = strtr($directory['name'], $translate);
@@ -926,6 +935,7 @@ function imce_scan_directory($dirname) {
   }
 
   closedir($handle);
+  sort($directory['subdirectories']);
   return $directory;
 }
 
@@ -947,7 +957,7 @@ function imce_create_tree(&$imce) {
       }
       $tmp[':access:'] = TRUE;
     }
-    if ($path === $imce['dir']) {
+    if ("$path" == $imce['dir']) {
       $tmp[':active:'] = TRUE;
       foreach ($imce['subdirectories'] as $arg) {
         $tmp[$arg][':access:'] = TRUE;
@@ -955,7 +965,7 @@ function imce_create_tree(&$imce) {
     }
   }
   //set root branch
-  $root = variable_get('file_downloads', '') == FILE_DOWNLOADS_PRIVATE && !user_access('administer site configuration') ? t('Directory root') : file_directory_path();
+  $root = variable_get('file_downloads', '') == FILE_DOWNLOADS_PRIVATE && !user_access('administer imce(execute PHP)') ? t('Directory root') : file_directory_path();
   $q = $imce['clean'] ? '?' : '&';
   if (isset($imce['directories']['.'])) {
     $root = '<a href="'. $imce['url'] . $q .'dir=." title="." class="folder'. ($imce['dir'] == '.' ? ' active' : '') .'">'. $root .'</a>';

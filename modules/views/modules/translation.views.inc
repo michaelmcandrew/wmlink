@@ -1,5 +1,5 @@
 <?php
-// $Id: translation.views.inc,v 1.7 2008/12/03 00:25:59 merlinofchaos Exp $
+// $Id: translation.views.inc,v 1.8.4.1 2010/03/19 23:09:54 merlinofchaos Exp $
 
 /**
  * @file
@@ -123,13 +123,24 @@ function translation_views_data_alter(&$data) {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_boolean_operator',
-      'label' => t('Published'),
+      'label' => t('Outdated'),
       'type' => 'yes-no',
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
   );
+
+  // Translate node link.
+  $data['node']['translate_node'] = array(
+    'group' => t('Node translation'),
+    'title' => t('Translate link'),
+    'help' => t('Provide a simple link to translate the node.'),
+    'field' => array(
+      'handler' => 'views_handler_field_node_link_translate',
+    ),
+  );
+
 
 }
 
@@ -146,6 +157,9 @@ function translation_views_handlers() {
       // field handlers
       'views_handler_field_node_language' => array(
         'parent' => 'views_handler_field_node',
+      ),
+      'views_handler_field_node_link_translate' => array(
+        'parent' => 'views_handler_field_node_link',
       ),
       // argument handlers
       'views_handler_argument_node_language' => array(

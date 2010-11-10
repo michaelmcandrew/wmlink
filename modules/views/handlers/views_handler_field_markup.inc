@@ -1,5 +1,5 @@
 <?php
-// $Id: views_handler_field_markup.inc,v 1.2 2008/09/24 22:48:20 merlinofchaos Exp $
+// $Id: views_handler_field_markup.inc,v 1.3.4.1 2009/11/18 20:52:23 merlinofchaos Exp $
 
 /**
  * A handler to run a field through check_markup, using a companion
@@ -22,14 +22,16 @@ class views_handler_field_markup extends views_handler_field {
 
     $this->additional_fields = array();
     if (!is_numeric($this->format)) {
-      $this->additional_fields['format'] = $this->format;
+      $this->additional_fields['format'] = array('field' => $this->format);
     }
   }
 
   function render($values) {
     $value = $values->{$this->field_alias};
     $format = is_numeric($this->format) ? $this->format : $values->{$this->aliases['format']};
-    return check_markup($value, $format, FALSE);
+    if ($value) {
+      return check_markup($value, $format, FALSE);
+    }
   }
 
   function element_type() {

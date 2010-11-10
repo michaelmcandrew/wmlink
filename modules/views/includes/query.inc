@@ -1,5 +1,5 @@
 <?php
-// $Id: query.inc,v 1.32 2008/10/28 20:08:10 merlinofchaos Exp $
+// $Id: query.inc,v 1.50.2.4 2009/12/02 22:59:18 dww Exp $
 /**
  * @file query.inc
  * Defines the query object which is the underlying layer in a View.
@@ -189,14 +189,33 @@ class views_query {
       $alias = $alias_base . '_' . $count++;
     }
 
-    if ($alias = $this->add_table($join->table, $link_point, $join, $alias)) {
-      $this->relationships[$alias] = array(
-        'link' => $link_point,
-        'table' => $join->table,
-        'base' => $base,
-      );
-      return $alias;
+    // Make sure this join is adjusted for our relationship.
+    if ($link_point && isset($this->relationships[$link_point])) {
+      $join = $this->adjust_join($join, $link_point);
     }
+
+    // Add the table directly to the queue to avoid accidentally marking
+    // it.
+    $this->table_queue[$alias] = array(
+      'table' => $join->table,
+      'num' => 1,
+      'alias' => $alias,
+      'join' => $join,
+      'relationship' => $link_point,
+    );
+
+    $this->relationships[$alias] = array(
+      'link' => $link_point,
+      'table' => $join->table,
+      'base' => $base,
+    );
+
+    $this->tables[$this->base_table][$alias] = array(
+      'count' => 1,
+      'alias' => $alias,
+    );
+
+    return $alias;
   }
 
   /**
@@ -234,7 +253,13 @@ class views_query {
       return FALSE;
     }
 
-    return $this->queue_table($table, $relationship, $this->adjust_join($join, $relationship), $alias);
+    if (!$join) {
+      $join = $this->get_join_data($table, $this->relationships[$relationship]['base']);
+    }
+
+    $join = $this->adjust_join($join, $relationship);
+
+    return $this->queue_table($table, $relationship, $join, $alias);
   }
 
   /**
@@ -279,7 +304,12 @@ class views_query {
     }
 
     if (!$alias && $join && $relationship && !empty($join->adjusted) && $table != $join->table) {
-      $alias = $table;
+      if ($relationship == $this->base_table) {
+        $alias = $table;
+      }
+      else {
+        $alias = $relationship . '_' . $table;
+      }
     }
 
     // Check this again to make sure we don't blow up existing aliases for already
@@ -452,8 +482,14 @@ class views_query {
       return FALSE;
     }
 
+    // If we do not have join info, fetch it.
     if (!isset($join)) {
       $join = $this->get_join_data($table, $this->relationships[$relationship]['base']);
+    }
+
+    // If it can't be fetched, this won't work.
+    if (empty($join)) {
+      return FALSE;
     }
 
     // Does a table along this path exist?
@@ -591,7 +627,7 @@ class views_query {
    * @return $name
    *   The name that this field can be referred to as. Usually this is the alias.
    */
-  function add_field($table, $field, $alias = '') {
+  function add_field($table, $field, $alias = '', $params = NULL) {
     // We check for this specifically because it gets a special alias.
     if ($table == $this->base_table && $field == $this->base_field && empty($alias)) {
       $alias = $this->base_field;
@@ -607,6 +643,7 @@ class views_query {
 
     $name = $alias ? $alias : $field;
 
+    // @todo FIXME -- $alias, then $name is inconsistent
     if (empty($this->fields[$alias])) {
       $this->fields[$name] = array(
         'field' => $field,
@@ -614,6 +651,11 @@ class views_query {
         'alias' => $alias,
       );
     }
+
+    foreach ((array)$params as $key => $value) {
+      $this->fields[$name][$key] = $value;
+    }
+
     return $name;
   }
 
@@ -644,7 +686,7 @@ class views_query {
     $groups = &$this->$where;
 
     if (!isset($group)) {
-      $group = max(array_keys($groups)) + 1;
+      $group = empty($groups) ? 1 : max(array_keys($groups)) + 1;
     }
 
     // Create an empty group
@@ -761,9 +803,7 @@ class views_query {
   }
 
   /**
-   * Add multiple an orderby's. Right now I'm not sure why this function
-   * is separate from add_orderby above; I don't think it needs to
-   * be.
+   * Add an ORDER BY clause to the query.
    *
    * @param $table
    *   The table this field is part of. If a formula, enter NULL.
@@ -812,7 +852,7 @@ class views_query {
    * added.
    */
   function add_groupby($clause) {
-    // Only add it if it's already in there.
+    // Only add it if it's not already in there.
     if (!in_array($clause, $this->groupby)) {
       $this->groupby[] = $clause;
     }
@@ -854,11 +894,11 @@ class views_query {
    *   Provide a countquery if this is true, otherwise provide a normal query.
    */
   function query($get_count = FALSE) {
-
     // Check query distinct value.
     if (empty($this->no_distinct) && $this->distinct && !empty($this->fields)) {
       if (!empty($this->fields[$this->base_field])) {
         $this->fields[$this->base_field]['distinct'] = TRUE;
+        $this->add_groupby($this->base_field);
       }
     }
 
@@ -869,7 +909,7 @@ class views_query {
     $fields_array = $this->fields;
     if ($get_count && !$this->groupby) {
       foreach ($fields_array as $field) {
-        if (isset($field['distinct'])) {
+        if (!empty($field['distinct'])) {
           $get_count_optimized = FALSE;
           break;
         }
@@ -890,6 +930,8 @@ class views_query {
       }
     }
 
+    $has_aggregate = FALSE;
+    $non_aggregates = array();
 
     foreach ($fields_array as $field) {
       if ($fields) {
@@ -900,11 +942,25 @@ class views_query {
         $string .= $field['table'] . '.';
       }
       $string .= $field['field'];
-      if (isset($field['distinct'])) {
+
+      // store for use with non-aggregates below
+      $fieldname = (!empty($field['alias']) ? $field['alias'] : $string);
+
+      if (!empty($field['distinct'])) {
         $string = "DISTINCT($string)";
       }
-      if (isset($field['count'])) {
+      if (!empty($field['count'])) {
         $string = "COUNT($string)";
+        $has_aggregate = TRUE;
+      }
+      else if (!empty($field['aggregate'])) {
+        $has_aggregate = TRUE;
+      }
+      elseif ($this->distinct && !in_array($fieldname, $this->groupby)) {
+        $string = $GLOBALS['db_type'] == 'pgsql' ? "FIRST($string)" : $string;
+      }
+      else {
+        $non_aggregates[] = $fieldname;
       }
       if ($field['alias']) {
         $string .= " AS $field[alias]";
@@ -917,8 +973,8 @@ class views_query {
       }
     }
 
-    if ($this->groupby) {
-      $groupby = "GROUP BY " . implode(', ', $this->groupby) . "\n";
+    if ($has_aggregate || $this->groupby) {
+      $groupby = "GROUP BY " . implode(', ', array_unique(array_merge($this->groupby, $non_aggregates))) . "\n";
       if ($this->having) {
         $having = $this->condition_sql('having');
       }

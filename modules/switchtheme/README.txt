@@ -1,4 +1,4 @@
-/* $Id: README.txt,v 1.3.2.2 2008/04/21 07:38:04 sun Exp $ */
+/* $Id: README.txt,v 1.3.2.5 2009/06/07 22:19:31 sun Exp $ */
 
 -- SUMMARY --
 
@@ -23,36 +23,41 @@ None.
 
 * Install as usual, see http://drupal.org/node/70151 for further information.
 
-* Enable the module in administer >> Modules.
+* Enable the module in Administer >> Modules.
 
 
 -- CONFIGURATION --
 
-* Configure user permissions in administer >> Access control >> Switchtheme.
+* Configure user permissions in Administer >> User management >> Permissions
+  >> Switchtheme.
   Enable the user roles are allowed to see the switchtheme block.  You may only
   want authenticated users to see it, for instance.
 
-* Customize the settings in administer >> Site configuration >> Switchtheme and
+  If the chosen theme should be stored permanently for registered users, please
+  note that you have to grant the "select different theme" permission in Drupal
+  core for (selected) user roles of authenticated users.
+
+* Customize the settings in Administer >> Site configuration >> Switchtheme and
   enable all themes that you want users to choose from.
 
   The theme names may not be very meaningful to regular users, so the settings
   page allows you to create custom titles to use for each theme.  If no titles
   are setup the original theme name is displayed instead.
 
-* Go to administer >> Site building >> Blocks and make sure that the "select
+* Go to Administer >> Site building >> Blocks and make sure that the "select
   switchtheme" block is enabled, and also enabled in every enabled theme. 
 
 
 -- NOTES --
 
 The module has been designed to defer to themes created by the Sections module
-(http://www.drupal.org/project/section). In other words, if you use the
+(http://drupal.org/project/sections).  In other words, if you use the
 sections module to create a special theme for the admin section, the
 switchtheme module will use that theme rather than the individual theme chosen
 by the user.
 
 If you are setting up a lot of themes, you may find the Block Region module 
-(http://www.drupal.org/project/blockregion) to be a helpful way of setting up
+(http://drupal.org/project/blockregion) to be a helpful way of setting up
 blocks to work the same way across many themes.  That will save you the time of
 setting up every block in every theme.
 
